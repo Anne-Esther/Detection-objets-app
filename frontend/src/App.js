@@ -14,7 +14,7 @@ function App() {
     const formData = new FormData();
     formData.append("file", image);
 
-    const response = await axios.post("http://localhost:8000/upload-image", formData, {
+    const response = await axios.post("https://detectionbackend.onrender.com/api/detect", formData, {
       responseType: "blob",
     });
 
