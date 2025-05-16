@@ -1,48 +1,21 @@
-import React, { useState } from "react";
-import axios from "axios";
-import "./App.css";
+import axios from 'axios';
 
-function App() {
-  const [image, setImage] = useState(null);
-  const [resultUrl, setResultUrl] = useState(null);
-
-  const handleChange = (e) => {
-    setImage(e.target.files[0]);
-  };
-
-  const handleUpload = async () => {
-    const formData = new FormData();
-    formData.append("file", image);
-
-    const response = await axios.post("https://detectionbackend.onrender.com/api/detect", formData, {
-      responseType: "blob",
-    });
-
-    const imageBlob = new Blob([response.data], { type: "image/jpeg" });
-    const imageUrl = URL.createObjectURL(imageBlob);
-    setResultUrl(imageUrl);
-  };
-
-  const handleDownload = () => {
-    const link = document.createElement("a");
-    link.href = resultUrl;
-    link.download = "image_annotée.jpg";
-    link.click();
-  };
-
-  return (
-    <div className="app">
-      <h1 className="title">Détection d’objets</h1>
-      <input type="file" onChange={handleChange} />
-      <button onClick={handleUpload}>Analyser</button>
-      {resultUrl && (
-        <div className="result">
-          <img src={resultUrl} alt="Résultat" />
-          <button onClick={handleDownload}>Télécharger</button>
-        </div>
-      )}
-    </div>
-  );
+// Exemple de fonction pour envoyer une image au backend
+async function sendImageToBackend(formData) {
+  try {
+    const response = await axios.post(
+      'https://detectionbackend.onrender.com/api/detect', // URL backend + route API
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
+    console.log('Réponse backend:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Erreur lors de la détection:', error);
+    throw error;
+  }
 }
-
-export default App;
