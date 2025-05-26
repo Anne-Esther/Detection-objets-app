@@ -1,19 +1,17 @@
 import torch
 import cv2
-from pathlib import Path
+import os
 
-# Obtenir le dossier du fichier courant (model/yolo.py)
-current_dir = Path(__file__).parent
+# chemin relatif vers le modèle local
+MODEL_PATH = os.path.join(os.path.dirname(__file__), 'yolov5s.pt')
 
-# Construire le chemin absolu vers le fichier yolov5s.pt
-model_path = current_dir / 'yolov5s.pt'
-
-# Charger le modèle depuis le chemin absolu
-model = torch.hub.load('ultralytics/yolov5', 'custom', path=str(model_path))
+# charger le modèle local YOLOv5 (mode eval)
+model = torch.hub.load('ultralytics/yolov5', 'custom', path=MODEL_PATH, source='local')
+model.eval()
 
 def detect_objects(image_path):
-    results = model(image_path)
-    results.render()
+    results = model(image_path)  # détecte les objets
+    results.render()  # dessine les boîtes sur l'image
     img = results.ims[0]
+    # encode en jpg
     return cv2.imencode('.jpg', img)[1].tobytes()
-
