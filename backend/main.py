@@ -9,7 +9,7 @@ app = FastAPI()
 # CORS settings
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # À restreindre en production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -20,4 +20,7 @@ app.include_router(predict.router)
 
 # Lancement si exécuté directement
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+    uvicorn.run(
+        app, 
+        host='0.0.0.0', 
+        port=int(os.environ.get('PORT', 8000))  # Port par défaut 8000 pour FastAPI
