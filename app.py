@@ -5,16 +5,15 @@ from transformers import BlipProcessor, BlipForConditionalGeneration
 import torch
 import warnings
 
-# Configuration de l'application
+# Configuration
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg'}
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max
 
-# Ignorer les avertissements spécifiques
+# Ignorer les avertissements
 warnings.filterwarnings("ignore", message="`resume_download` is deprecated")
 
-# Initialisation du modèle
+# Modèle BLIP
 processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
 model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-base")
 
@@ -28,36 +27,41 @@ def home():
 @app.route('/analyze', methods=['POST'])
 def analyze():
     if 'image' not in request.files:
-        return jsonify({'error': 'Aucune image fournie'}), 400
+        return jsonify({'error': 'No image provided'}), 400
         
     file = request.files['image']
     if file.filename == '':
-        return jsonify({'error': 'Aucune image sélectionnée'}), 400
+        return jsonify({'error': 'No image selected'}), 400
         
-    if file and allowed_file(file.filename):
-        try:
-            # Traitement de l'image
-            image = Image.open(file.stream).convert('RGB')
-            
-            # Redimensionnement (Bonus 3)
-            image = image.resize((384, 384))
-            
-            # Génération de la description avec padding
-            inputs = processor(image, return_tensors="pt", padding=True)
-            out = model.generate(**inputs)
-            description = processor.decode(out[0], skip_special_tokens=True)
-            
-            return jsonify({
-                'success': True,
-                'description': description
-            })
-        except Exception as e:
-            return jsonify({
-                'error': f"Erreur de traitement: {str(e)}"
-            }), 500
-            
-    return jsonify({'error': 'Type de fichier non autorisé'}), 400
+    try:
+        # Traitement optimisé pour PyTorch 2.7.1
+        image = Image.open(file.stream).convert('RGB')
+        image = image.resize((384, 384))  # Taille standard pour BLIP
+        
+        # Configuration améliorée du padding
+        inputs = processor(
+            text=None,
+            images=image,
+            return_tensors="pt",
+            padding="max_length",
+            max_length=77,
+            truncation=True
+        )
+        
+        # Génération avec paramètres optimisés
+        outputs = model.generate(
+            **inputs,
+            max_new_tokens=50,
+            num_beams=4,
+            early_stopping=True
+        )
+        
+        description = processor.decode(outputs[0], skip_special_tokens=True)
+        return jsonify({'description': description})
+        
+    except Exception as e:
+        return jsonify({'error': f"Processing error: {str(e)}"}), 500
 
 if __name__ == '__main__':
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, port=5000)
